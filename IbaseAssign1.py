@@ -1,95 +1,103 @@
-import openpyxl
+import csv
 
-file = "bank.xlsx"
+file = "bank.csv"
 
-# Create Excel file
+# Create CSV file with headers if it doesn't exist
 try:
-    wkb = openpyxl.load_workbook(file)
-    ws = wkb.active
+    f = open(file, mode="r")
+    f.close()
 except FileNotFoundError:
-    wkb = openpyxl.Workbook()
-    ws = wkb.active
-    ws.append(["Name", "Mobile", "Balance"])
-    wkb.save(file)
-    
+    with open(file, mode="w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["Name", "Mobile", "Balance"])
 
 
 def add_new():
-    wkb = openpyxl.load_workbook(file)
-    ws = wkb.active
-
     name = input("Enter Your Name: ")
     mobile = input("Enter Mobile Number: ")
     balance = float(input("Enter Opening Balance: "))
 
-    ws.append([name, mobile, balance])
-    wkb.save(file)
-    wkb.close()
+    with open(file, mode="a", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow([name, mobile, balance])
 
     print("Account Created Successfully!")
 
 
 def deposit_money():
-    wkb = openpyxl.load_workbook(file)
-    ws = wkb.active
-
     mobile = input("Enter Mobile Number: ")
     amount = float(input("Enter Amount to Deposit: "))
 
-    for row in range(2, ws.max_row + 1):
-        if str(ws.cell(row, 2).value) == mobile:
-            ws.cell(row, 3).value += amount
-            wkb.save(file)
-            wkb.close()
-            print("Money Deposited Successfully!")
-            return
+    rows = []
+    found = False
 
-    print("Account Not Found!")
-    wkb.close()
+    with open(file, mode="r") as f:
+        reader = csv.reader(f)
+        rows = list(reader)
+
+    for row in rows[1:]:
+        if row[1] == mobile:
+            row[2] = str(float(row[2]) + amount)
+            found = True
+            break
+
+    if found:
+        with open(file, mode="w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerows(rows)
+        print("Money Deposited Successfully!")
+    else:
+        print("Account Not Found!")
 
 
 def withdrawal_money():
-    wkb = openpyxl.load_workbook(file)
-    ws = wkb.active
-
     mobile = input("Enter Mobile Number: ")
     amount = float(input("Enter Amount to Withdraw: "))
 
-    for row in range(2, ws.max_row + 1):
-        if str(ws.cell(row, 2).value) == mobile:
-            balance = ws.cell(row, 3).value
+    if amount <= 0:
+        print("Enter a Valid Amount!")
+        return
 
-            if amount <= 0:
-                print("Enter a Valid Amount!")
-            elif amount <= balance:
-                ws.cell(row, 3).value = balance - amount
-                wkb.save(file)
-                print("Money Withdrawn Successfully!")
+    rows = []
+    found = False
+
+    with open(file, mode="r") as f:
+        reader = csv.reader(f)
+        rows = list(reader)
+
+    for row in rows[1:]:
+        if row[1] == mobile:
+            balance = float(row[2])
+            if amount <= balance:
+                row[2] = str(balance - amount)
+                found = True
             else:
                 print("Insufficient Balance!")
+                return
+            break
 
-            wkb.close()
-            return
-
-    print("Account Not Found!")
-    wkb.close()
+    if found:
+        with open(file, mode="w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerows(rows)
+        print("Money Withdrawn Successfully!")
+    else:
+        print("Account Not Found!")
 
 
 def view_balance():
-    wkb = openpyxl.load_workbook(file)
-    ws = wkb.active
-
     mobile = input("Enter Mobile Number: ")
 
-    for row in range(2, ws.max_row + 1):
-        if str(ws.cell(row, 2).value) == mobile:
-            print("Name:", ws.cell(row, 1).value)
-            print("Current Balance: Rs.", ws.cell(row, 3).value)
-            wkb.close()
-            return
+    with open(file, mode="r") as f:
+        reader = csv.reader(f)
+        next(reader)  # Skip header
+        for row in reader:
+            if row[1] == mobile:
+                print("Name:", row[0])
+                print("Current Balance: Rs.", row[2])
+                return
 
     print("Account Not Found!")
-    wkb.close()
 
 
 def menu():
@@ -120,4 +128,3 @@ def menu():
 
 
 menu()
-
